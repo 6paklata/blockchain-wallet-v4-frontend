@@ -173,6 +173,15 @@ export const reviewOrder = {
         totalBase
       )}`
     }
+  },
+  renderRecurringAmount: (q) => {
+    const baseCurr = prop('baseCurrency')
+    const quoteCurr = prop('quoteCurrency')
+    if (reviewOrder.baseBtc(q)) {
+      return `${Currency.formatFiat(Math.abs(prop('quoteAmount', q)))} ${quoteCurr(q)} (+ ${Currency.formatFiat(path(['paymentMediums', 'card', 'fee'], q))} ${quoteCurr(q)} Payment Fee)`
+    } else {
+      return `${Currency.formatFiat(Math.abs(prop('baseAmount', q)))} ${baseCurr(q)} (+ ${Currency.formatFiat(path(['paymentMediums', 'card', 'fee'], q))} ${baseCurr(q)} Payment Fee)`
+    }
   }
 }
 
@@ -334,12 +343,7 @@ export const bodyStatusHelper = (status, isBuy) => {
         }
       case 'completed':
         return {
-          text: (
-            <FormattedMessage
-              id='scenes.services.coinifyservice.buysellorderhistory.list.orderstatusbody.buy.completed'
-              defaultMessage='Your buy trade is complete!'
-            />
-          )
+          text: null
         }
       case 'rejected':
         return {
@@ -747,7 +751,7 @@ export const recurringTimeHelper = sub => {
   ]
 
   const getTimespan = sub => {
-    const freq = toLower(prop('frequency', sub))
+    const freq = prop('frequency', sub) && toLower(prop('frequency', sub))
     const date = new Date()
 
     switch (freq) {

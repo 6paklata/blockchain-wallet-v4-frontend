@@ -16,6 +16,10 @@ export const coinifyNextStep = step => ({
 })
 export const coinifyNextCheckoutStep = step => ({
   type: AT.COINIFY_NEXT_CHECKOUT_STEP,
+  step
+})
+export const coinifySetCheckoutStep = step => ({
+  type: AT.COINIFY_SET_CHECKOUT_STEP,
   payload: step
 })
 
@@ -114,4 +118,38 @@ export const coinifySellBtcPaymentUpdatedLoading = () => ({
 export const coinifySellBtcPaymentUpdatedFailure = err => ({
   type: AT.COINIFY_SELL_BTC_PAYMENT_UPDATED_FAILURE,
   payload: err
+})
+
+// RECURRING BUY
+export const coinifyRecurringCheckoutInitialize = () => ({
+  type: AT.COINIFY_RECURRING_BUY_CHECKOUT_INITIALIZE
+})
+export const showRecurringModal = payload => ({
+  type: AT.COINIFY_SHOW_RECURRING_MODAL,
+  payload
+})
+export const setRecurringTradeFrequency = payload => ({
+  type: AT.COINIFY_SET_RECURRING_TRADE_FREQUENCY,
+  payload
+})
+export const setRecurringTradeEndTime = payload => ({
+  type: AT.COINIFY_SET_RECURRING_TRADE_END_TIME,
+  payload
+})
+export const coinifyResetRecurringBuy = () => ({
+  type: AT.COINIFY_RESET_RECURRING_BUY
+})
+export const startKycFromRecurring = () => ({
+  type: AT.START_KYC_FROM_RECURRING
+})
+export const handleRecurringModalClose = () => ({
+  type: AT.HANDLE_RECURRING_MODAL_CLOSE
+})
+export const setIsRecurringTrade = payload => ({
+  type: AT.COINIFY_IS_RECURRING_TRADE,
+  payload
+})
+export const disableRecurringCheckbox = payload => ({
+  type: AT.DISABLE_RECURRING_CHECKBOX,
+  payload
 })

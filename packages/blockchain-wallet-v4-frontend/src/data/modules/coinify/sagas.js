@@ -1,14 +1,22 @@
-import { put, call, select } from 'redux-saga/effects'
+import { put, call, select, fork } from 'redux-saga/effects'
 import { any, merge, path, prop, equals, head } from 'ramda'
 import { delay } from 'redux-saga'
 import * as A from './actions'
 import * as actions from '../../actions'
 import * as selectors from '../../selectors.js'
 import * as C from 'services/AlertService'
+import * as CC from 'services/ConfirmService'
 import * as service from 'services/CoinifyService'
+<<<<<<< HEAD
 import { promptForSecondPassword } from 'services/SagaService'
 import { ADDRESS_TYPES } from 'blockchain-wallet-v4/src/redux/payment/btc/utils'
 
+=======
+import { promptForSecondPassword, confirm } from 'services/SagaService'
+import { initialize } from 'redux-form'
+import moment from 'moment'
+import * as M from './model'
+>>>>>>> origin/feat/recurring_buy
 export const sellDescription = `Exchange Trade CNY-`
 export const logLocation = 'modules/coinify/sagas'
 
@@ -20,7 +28,7 @@ export default ({ coreSagas, networks }) => {
       const profile = yield select(selectors.core.data.coinify.getProfile)
       if (!profile.error) {
         yield call(coreSagas.data.coinify.triggerKYC)
-        yield put(A.coinifyNextStep('isx'))
+        yield put(A.coinifyNextStep(M.STEPS.ISX))
       } else {
         yield put(A.coinifySignupFailure(JSON.parse(profile.error)))
       }
@@ -37,11 +45,14 @@ export default ({ coreSagas, networks }) => {
 
   const buy = function*(payload) {
     try {
+      const state = yield select()
+      const subscriptionData = path(['coinify', 'subscription'], state) ? path(['coinify', 'subscriptionData'], state) : null
       const nextAddressData = yield call(prepareAddress)
       const buyTrade = yield call(
         coreSagas.data.coinify.buy,
         payload,
-        nextAddressData
+        nextAddressData,
+        subscriptionData
       )
 
       if (!buyTrade) {
@@ -53,11 +64,13 @@ export default ({ coreSagas, networks }) => {
       }
 
       if (buyTrade.medium === 'bank') {
-        yield put(A.coinifyNextCheckoutStep('bankTransferDetails'))
+        yield put(A.coinifyNextCheckoutStep(M.STEPS.BANK_TRANSFER))
       } else {
-        yield put(A.coinifyNextCheckoutStep('isx'))
+        yield put(A.coinifyNextCheckoutStep(M.STEPS.ISX))
+        if (prop('tradeSubscriptionId', buyTrade)) yield fork(coreSagas.data.coinify.fetchSubscriptions)
       }
       yield put(A.coinifyNotAsked())
+      yield put(A.coinifyResetRecurringBuy())
     } catch (e) {
       yield put(actions.logs.logErrorMessage(logLocation, 'buy', e))
     }
@@ -141,7 +154,7 @@ export default ({ coreSagas, networks }) => {
       yield put(
         actions.form.change('buySellTabStatus', 'status', 'order_history')
       )
-      yield put(actions.modals.showModal('CoinifyTradeDetails', { trade }))
+      yield put(actions.modals.showModal(M.TRADE_DETAILS_MODAL, { trade }))
       yield put(A.initializePayment())
     } catch (e) {
       yield put(A.coinifyFailure(e))
@@ -164,9 +177,9 @@ export default ({ coreSagas, networks }) => {
       let error = false
 
       if (type === 'buy') {
-        yield put(actions.form.initialize('coinifyCheckoutBuy', initialValues))
+        yield put(actions.form.initialize(M.CHECKOUT_BUY_FORM, initialValues))
       } else {
-        yield put(actions.form.initialize('coinifyCheckoutSell', initialValues))
+        yield put(actions.form.initialize(M.CHECKOUT_SELL_FORM, initialValues))
         const limitsR = yield select(selectors.core.data.coinify.getLimits)
         const limits = limitsR.getOrElse(undefined)
         const defaultIndex = yield select(
@@ -203,7 +216,7 @@ export default ({ coreSagas, networks }) => {
       const levelR = yield select(selectors.core.data.coinify.getLevel)
       const currency = levelR.map(l => l.currency).getOrElse('EUR')
       const cardMax = path([currency], card.inRemaining)
-      yield put(actions.form.change('coinifyCheckoutBuy', 'leftVal', cardMax))
+      yield put(actions.form.change(M.CHECKOUT_BUY_FORM, 'leftVal', cardMax))
     } catch (e) {
       yield put(actions.logs.logErrorMessage(logLocation, 'checkoutCardMax', e))
     }
@@ -214,7 +227,7 @@ export default ({ coreSagas, networks }) => {
       const form = path(['meta', 'form'], action)
       const field = path(['meta', 'field'], action)
       const payload = prop('payload', action)
-      if (!any(equals(form))(['coinifyCheckoutBuy', 'coinifyCheckoutSell'])) {
+      if (!any(equals(form))([M.CHECKOUT_BUY_FORM, M.CHECKOUT_SELL_FORM])) {
         return
       }
       yield put(A.coinifyCheckoutBusyOn())
@@ -223,7 +236,7 @@ export default ({ coreSagas, networks }) => {
       const limitsR = yield select(selectors.core.data.coinify.getLimits)
       const limits = limitsR.getOrElse(undefined)
       const values = yield select(selectors.form.getFormValues(form))
-      const type = form === 'coinifyCheckoutBuy' ? 'buy' : 'sell'
+      const type = form === M.CHECKOUT_BUY_FORM ? 'buy' : 'sell'
       const isSell = type === 'sell'
       const state = yield select()
 
@@ -291,6 +304,13 @@ export default ({ coreSagas, networks }) => {
             )
           )
           yield put(A.coinifyCheckoutBusyOff())
+          const overCreditCardMax = payload > path(['card', 'inRemaining', values.currency], limits)
+          if (overCreditCardMax) {
+            yield put(A.disableRecurringCheckbox(true))
+            yield put(actions.form.change(M.RECURRING_CHECKOUT_FORM, 'recurring', false))
+          } else {
+            yield put(A.disableRecurringCheckbox(false))
+          }
           break
         case 'rightVal':
           if (isSell) {
@@ -394,9 +414,9 @@ export default ({ coreSagas, networks }) => {
           actions.form.change('buySellTabStatus', 'status', 'order_history')
         )
       }
-      yield put(A.coinifyNextCheckoutStep('checkout'))
+      yield put(A.coinifyNextCheckoutStep(M.STEPS.CHECKOUT))
       yield put(
-        actions.modals.showModal('CoinifyTradeDetails', {
+        actions.modals.showModal(M.TRADE_DETAILS_MODAL, {
           trade: trade,
           status: status
         })
@@ -411,7 +431,7 @@ export default ({ coreSagas, networks }) => {
   const triggerKYC = function*() {
     try {
       yield call(coreSagas.data.coinify.triggerKYC)
-      yield put(A.coinifyNextCheckoutStep('isx'))
+      yield put(A.coinifyNextCheckoutStep(M.STEPS.ISX))
     } catch (e) {
       yield put(actions.logs.logErrorMessage(logLocation, 'triggerKYC', e))
     }
@@ -432,7 +452,7 @@ export default ({ coreSagas, networks }) => {
         yield call(coreSagas.data.coinify.kycAsTrade, {
           kyc: kyc || recentKyc
         }) // if no kyc was given, take the most recent
-        yield put(A.coinifyNextCheckoutStep('isx'))
+        yield put(A.coinifyNextCheckoutStep(M.STEPS.ISX))
       } else {
         yield call(triggerKYC)
       }
@@ -462,10 +482,10 @@ export default ({ coreSagas, networks }) => {
         yield put(actions.core.data.coinify.handleTradeSuccess(tradeToFinish))
         if (tradeToFinish.medium === 'card') {
           yield call(coreSagas.data.coinify.kycAsTrade, { kyc: tradeToFinish }) // core expects obj key to be 'kyc'
-          yield put(A.coinifyNextCheckoutStep('isx'))
+          yield put(A.coinifyNextCheckoutStep(M.STEPS.ISX))
         } else if (tradeToFinish.medium === 'bank') {
           yield put(
-            actions.modals.showModal('CoinifyTradeDetails', {
+            actions.modals.showModal(M.TRADE_DETAILS_MODAL, {
               trade: tradeToFinish
             })
           )
@@ -487,19 +507,28 @@ export default ({ coreSagas, networks }) => {
       yield put(
         actions.form.change('buySellTabStatus', 'status', 'order_history')
       )
-      yield put(A.coinifyNextCheckoutStep('checkout'))
+      yield put(A.coinifyNextCheckoutStep(M.STEPS.CHECKOUT))
     } else {
-      yield put(A.coinifyNextCheckoutStep('checkout'))
+      yield put(A.coinifyNextCheckoutStep(M.STEPS.CHECKOUT))
     }
   }
 
   const cancelTrade = function*(data) {
     const trade = data.payload
     try {
-      yield put(A.setCancelTradeId(trade.id))
-      yield put(A.coinifyLoading())
-      yield call(coreSagas.data.coinify.cancelTrade, { trade })
-      yield put(A.coinifySuccess())
+      const confirmed = yield call(confirm, {
+        title: CC.CANCEL_TRADE_TITLE,
+        image: null,
+        message: CC.CANCEL_TRADE_MSG,
+        confirm: CC.CANCEL_TRADE_CONFIRM,
+        cancel: CC.CANCEL_TRADE_CANCEL
+      })
+      if (confirmed) {
+        yield put(A.setCancelTradeId(trade.id))
+        yield put(A.coinifyLoading())
+        yield call(coreSagas.data.coinify.cancelTrade, { trade })
+        yield put(A.coinifySuccess())
+      }
     } catch (e) {
       yield put(actions.logs.logErrorMessage(logLocation, 'cancelTrade', e))
     }
@@ -508,9 +537,18 @@ export default ({ coreSagas, networks }) => {
   const cancelSubscription = function*(data) {
     const id = path(['payload', 'id'], data)
     try {
-      yield put(A.coinifyLoading())
-      yield call(coreSagas.data.coinify.cancelSubscription, { id })
-      yield put(A.coinifySuccess())
+      const confirmed = yield call(confirm, {
+        title: CC.CANCEL_RECURRING_TITLE,
+        image: null,
+        message: CC.CANCEL_RECURRING_MSG,
+        confirm: CC.CANCEL_RECURRING_CONFIRM,
+        cancel: CC.CANCEL_RECURRING_CANCEL
+      })
+      if (confirmed) {
+        yield put(A.coinifyLoading())
+        yield call(coreSagas.data.coinify.cancelSubscription, { id })
+        yield put(A.coinifySuccess())
+      }
     } catch (e) {
       yield put(
         actions.logs.logErrorMessage(logLocation, 'cancelSubscription', e)
@@ -540,6 +578,76 @@ export default ({ coreSagas, networks }) => {
     }
   }
 
+  const recurringCheckoutInitialized = function*() {
+    const initialValues = { frequency: 'weekly', duration: null }
+    yield put(initialize(M.RECURRING_CHECKOUT_FORM, initialValues))
+  }
+
+  const handleRecurringFormChange = function*(action) {
+    try {
+      const form = path(['meta', 'form'], action)
+      if (!equals(form, M.RECURRING_CHECKOUT_FORM)) return
+      const field = path(['meta', 'field'], action)
+      const payload = prop('payload', action)
+
+      switch (field) {
+        case 'recurring':
+          yield put(A.showRecurringModal(payload))
+          return
+        case 'frequency':
+          yield put(A.setRecurringTradeFrequency(payload))
+          return
+        case 'duration':
+          const date = moment(payload).toISOString()
+          yield put(A.setRecurringTradeEndTime(date))
+          return
+      }
+    } catch (e) {
+      yield put(
+        actions.logs.logErrorMessage(logLocation, 'handleRecurringFormChange', e)
+      )
+    }
+  }
+
+  const startKycFromRecurring = function*() {
+    try {
+      yield put(A.coinifyLoading())
+      yield call(coreSagas.data.coinify.triggerKYC)
+      yield put(A.coinifySuccess())
+      yield put(actions.modals.replaceModal('CoinifyExchangeData', { step: M.STEPS.ISX }))
+    } catch (e) {
+      yield put(
+        actions.logs.logErrorMessage(logLocation, 'startKycFromRecurring', e)
+      )
+    }
+  }
+
+  const handleRecurringModalClose = function*() {
+    try {
+      yield put(actions.modals.closeModal())
+      yield put(A.showRecurringModal(false))
+      yield put(A.coinifyRecurringCheckoutInitialize())
+    } catch (e) {
+      yield put(
+        actions.logs.logErrorMessage(logLocation, 'handleRecurringModalClose', e)
+      )
+    }
+  }
+
+  const handleNextCheckoutStep = function*(payload) {
+    try {
+      const { step } = payload
+      if (equals(step, M.STEPS.CHECKOUT)) {
+        yield put(A.coinifyResetRecurringBuy())
+      }
+      yield put(A.coinifySetCheckoutStep(step))
+    } catch (e) {
+      yield put(
+        actions.logs.logErrorMessage(logLocation, 'handleNextCheckoutStep', e)
+      )
+    }
+  }
+
   return {
     buy,
     cancelISX,
@@ -552,11 +660,16 @@ export default ({ coreSagas, networks }) => {
     finishTrade,
     fromISX,
     handleChange,
+    handleNextCheckoutStep,
+    handleRecurringFormChange,
+    handleRecurringModalClose,
     initialized,
     initializePayment,
     openKYC,
     prepareAddress,
+    recurringCheckoutInitialized,
     sell,
+    startKycFromRecurring,
     triggerKYC
   }
 }

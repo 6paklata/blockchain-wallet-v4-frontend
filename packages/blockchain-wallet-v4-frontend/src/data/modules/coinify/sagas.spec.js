@@ -1,5 +1,5 @@
 import { select } from 'redux-saga/effects'
-import { promptForSecondPassword } from 'services/SagaService'
+import { promptForSecondPassword, confirm } from 'services/SagaService'
 import { expectSaga, testSaga } from 'redux-saga-test-plan'
 import { coreSagasFactory, Remote } from 'blockchain-wallet-v4/src'
 import * as actions from '../../actions'
@@ -8,14 +8,18 @@ import * as selectors from '../../selectors.js'
 import coinifySagas, { logLocation, sellDescription } from './sagas'
 import * as C from 'services/AlertService'
 import { merge } from 'ramda'
-
+import { model } from 'data'
+import moment from 'moment'
 jest.mock('blockchain-wallet-v4/src/redux/sagas')
 const coreSagas = coreSagasFactory()
 const networks = { btc: 'bitcoin' }
 
+const { CHECKOUT_BUY_FORM, TRADE_DETAILS_MODAL, RECURRING_CHECKOUT_FORM, STEPS } = model.coinify
+
 describe('coinifySagas', () => {
   beforeAll(() => {
     Math.random = () => 0.5
+    Date.now = () => 1536080134670
   })
 
   const mockedLimits = Remote.of({
@@ -336,7 +340,7 @@ describe('coinifySagas', () => {
     it('should open the trade details modal if bank', () => {
       const tradeToFinish = data.payload
       saga.next(tradeToFinish).put(
-        actions.modals.showModal('CoinifyTradeDetails', {
+        actions.modals.showModal(TRADE_DETAILS_MODAL, {
           trade: tradeToFinish
         })
       )
@@ -367,6 +371,10 @@ describe('coinifySagas', () => {
       accountIndex: 0
     }
 
+    it('should select the state', () => {
+      saga.next().select()
+    })
+
     it('should call prepareAddress', () => {
       saga.next().call(prepareAddress)
     })
@@ -374,7 +382,7 @@ describe('coinifySagas', () => {
     it('should call buy', () => {
       saga
         .next(nextAddressData)
-        .call(coreSagas.data.coinify.buy, payload, nextAddressData)
+        .call(coreSagas.data.coinify.buy, payload, nextAddressData, null)
         .save(beforeResponse)
     })
 
@@ -458,7 +466,7 @@ describe('coinifySagas', () => {
       }
       saga
         .next(Remote.of(level))
-        .put(actions.form.initialize('coinifyCheckoutBuy', initialValues))
+        .put(actions.form.initialize(CHECKOUT_BUY_FORM, initialValues))
     })
 
     it('should fetch a rate quote', () => {
@@ -536,7 +544,7 @@ describe('coinifySagas', () => {
     const action = {
       payload: 'GBP',
       meta: {
-        form: 'coinifyCheckoutBuy',
+        form: CHECKOUT_BUY_FORM,
         field: 'currency'
       }
     }
@@ -571,7 +579,7 @@ describe('coinifySagas', () => {
         .next()
         .put(
           actions.form.initialize(
-            'coinifyCheckoutBuy',
+            CHECKOUT_BUY_FORM,
             merge({ currency: 'GBP' }, { leftVal: '', rightVal: '' })
           )
         )
@@ -594,7 +602,7 @@ describe('coinifySagas', () => {
     const action = {
       payload: 100,
       meta: {
-        form: 'coinifyCheckoutBuy',
+        form: CHECKOUT_BUY_FORM,
         field: 'leftVal'
       }
     }
@@ -641,7 +649,7 @@ describe('coinifySagas', () => {
         .next(leftResult)
         .put(
           actions.form.initialize(
-            'coinifyCheckoutBuy',
+            CHECKOUT_BUY_FORM,
             merge(
               { currency: 'EUR' },
               { rightVal: leftResult.quoteAmount / 1e8 }
@@ -654,8 +662,10 @@ describe('coinifySagas', () => {
       saga
         .next()
         .put(coinifyActions.coinifyCheckoutBusyOff())
-        .next()
-        .isDone()
+    })
+
+    it('should reenable the recurring checkbox', () => {
+      saga.next().put(coinifyActions.disableRecurringCheckbox(false))
     })
   })
 
@@ -667,7 +677,7 @@ describe('coinifySagas', () => {
     const action = {
       payload: 100,
       meta: {
-        form: 'coinifyCheckoutBuy',
+        form: CHECKOUT_BUY_FORM,
         field: 'rightVal'
       }
     }
@@ -715,7 +725,7 @@ describe('coinifySagas', () => {
         .next(leftResult)
         .put(
           actions.form.initialize(
-            'coinifyCheckoutBuy',
+            CHECKOUT_BUY_FORM,
             merge({ currency: 'EUR' }, { leftVal: 100 })
           )
         )
@@ -939,8 +949,20 @@ describe('coinifySagas', () => {
     let saga = testSaga(cancelTrade, data)
     let saveToRestore = 'saveToRestore'
 
+    it('should prompt the user if they want to cancel their trade', () => {
+      saga
+        .next()
+        .call(confirm, {
+          title: 'cancel_trade_title',
+          image: null,
+          message: 'cancel_trade_msg',
+          confirm: 'cancel_trade_confirm',
+          cancel: 'cancel_trade_cancel'
+        })
+    })
+
     it('should setCancelTradeId', () => {
-      saga.next().put(coinifyActions.setCancelTradeId(data.payload.id))
+      saga.next(true).put(coinifyActions.setCancelTradeId(data.payload.id))
     })
 
     it('should trigger loading', () => {
@@ -984,9 +1006,21 @@ describe('coinifySagas', () => {
     let saga = testSaga(cancelSubscription, data)
     let saveToRestore = 'saveToRestore'
 
-    it('should trigger loading', () => {
+    it('should prompt the user if they want to cancel their subscription', () => {
       saga
         .next()
+        .call(confirm, {
+          title: 'cancel_recurring_title',
+          image: null,
+          message: 'cancel_recurring_msg',
+          confirm: 'cancel_recurring_confirm',
+          cancel: 'cancel_recurring_cancel'
+        })
+    })
+
+    it('should trigger loading', () => {
+      saga
+        .next(true)
         .put(coinifyActions.coinifyLoading())
         .save(saveToRestore)
     })
@@ -1089,7 +1123,7 @@ describe('coinifySagas', () => {
       const level = { currency: 'EUR' }
       saga
         .next(Remote.of(level))
-        .put(actions.form.change('coinifyCheckoutBuy', 'leftVal', 300))
+        .put(actions.form.change(CHECKOUT_BUY_FORM, 'leftVal', 300))
     })
 
     describe('error handling', () => {
@@ -1217,7 +1251,7 @@ describe('coinifySagas', () => {
 
     it('should show the trade details modal', () => {
       saga.next().put(
-        actions.modals.showModal('CoinifyTradeDetails', {
+        actions.modals.showModal(TRADE_DETAILS_MODAL, {
           trade: mockSellTrade
         })
       )
@@ -1232,6 +1266,239 @@ describe('coinifySagas', () => {
           .put(coinifyActions.coinifyFailure(error))
           .next()
           .put(actions.logs.logErrorMessage(logLocation, 'sell', error))
+      })
+    })
+  })
+
+  describe('recurringCheckoutInitialized', () => {
+    const initialValues = {
+      frequency: 'weekly',
+      duration: null
+    }
+    let { recurringCheckoutInitialized } = coinifySagas({ coreSagas })
+
+    let saga = testSaga(recurringCheckoutInitialized)
+
+    it('should initialize with frequency and duration values', () => {
+      saga.next().put(actions.form.initialize(RECURRING_CHECKOUT_FORM, initialValues))
+    })
+  })
+
+  describe('handleRecurringFormChange', () => {
+    describe('recurring field', () => {
+      let { handleRecurringFormChange } = coinifySagas({ coreSagas })
+      const action = {
+        payload: true,
+        meta: {
+          form: RECURRING_CHECKOUT_FORM,
+          field: 'recurring'
+        }
+      }
+      let saga = testSaga(handleRecurringFormChange, action)
+
+      it('should set show modal to true', () => {
+        saga.next().put(coinifyActions.showRecurringModal(action.payload))
+      })
+    })
+    describe('frequency field', () => {
+      let { handleRecurringFormChange } = coinifySagas({ coreSagas })
+      const action = {
+        payload: 'weekly',
+        meta: {
+          form: RECURRING_CHECKOUT_FORM,
+          field: 'frequency'
+        }
+      }
+      let saga = testSaga(handleRecurringFormChange, action)
+
+      it('should dispatch an action to set the recurring trade frequency', () => {
+        saga.next().put(coinifyActions.setRecurringTradeFrequency(action.payload))
+      })
+    })
+    describe('duration field', () => {
+      let { handleRecurringFormChange } = coinifySagas({ coreSagas })
+      let d = new Date(1536080134670)
+      const action = {
+        payload: d,
+        meta: {
+          form: RECURRING_CHECKOUT_FORM,
+          field: 'duration'
+        }
+      }
+      let saga = testSaga(handleRecurringFormChange, action)
+
+      it('should set the subscription end date', () => {
+        let momentDate = moment(action.payload).toISOString()
+        saga.next().put(coinifyActions.setRecurringTradeEndTime(momentDate))
+      })
+    })
+    describe('error handling', () => {
+      let { handleRecurringFormChange } = coinifySagas({ coreSagas })
+      let d = new Date(1536080134670)
+      const action = { payload: d, meta: { form: RECURRING_CHECKOUT_FORM, field: 'duration' } }
+      let saga = testSaga(handleRecurringFormChange, action)
+      const error = new Error('ERROR')
+      it('should log the error', () => {
+        saga
+          .restart()
+          .next()
+          .throw(error)
+          .put(actions.logs.logErrorMessage(logLocation, 'handleRecurringFormChange', error))
+      })
+    })
+  })
+
+  describe('startKycFromRecurring', () => {
+    let { startKycFromRecurring } = coinifySagas({ coreSagas })
+
+    let saga = testSaga(startKycFromRecurring)
+
+    it('should set loading', () => {
+      saga.next().put(coinifyActions.coinifyLoading())
+    })
+    it('should call the core to trigger KYC', () => {
+      saga.next().call(coreSagas.data.coinify.triggerKYC)
+    })
+    it('should set success', () => {
+      saga.next().put(coinifyActions.coinifySuccess())
+    })
+    it('should replace the modal', () => {
+      saga.next().put(actions.modals.replaceModal('CoinifyExchangeData', { step: STEPS.ISX }))
+    })
+    describe('error handling', () => {
+      let { startKycFromRecurring } = coinifySagas({ coreSagas })
+      let saga = testSaga(startKycFromRecurring)
+      const error = new Error('ERROR')
+      it('should log the error', () => {
+        saga
+          .restart()
+          .next()
+          .throw(error)
+          .put(actions.logs.logErrorMessage(logLocation, 'startKycFromRecurring', error))
+      })
+    })
+  })
+
+  describe('handleRecurringModalClose', () => {
+    let { handleRecurringModalClose } = coinifySagas({ coreSagas })
+
+    let saga = testSaga(handleRecurringModalClose)
+
+    it('should close the modal', () => {
+      saga.next().put(actions.modals.closeModal())
+    })
+    it('should set showRecurringModal to false', () => {
+      saga.next().put(coinifyActions.showRecurringModal(false))
+    })
+    it('should initialize the recurring checkout form', () => {
+      saga.next().put(coinifyActions.coinifyRecurringCheckoutInitialize())
+    })
+    describe('error handling', () => {
+      let { handleRecurringModalClose } = coinifySagas({ coreSagas })
+      let saga = testSaga(handleRecurringModalClose)
+      const error = new Error('ERROR')
+      it('should log the error', () => {
+        saga
+          .restart()
+          .next()
+          .throw(error)
+          .put(actions.logs.logErrorMessage(logLocation, 'handleRecurringModalClose', error))
+      })
+    })
+  })
+
+  describe('handleNextCheckoutStep', () => {
+    describe('not checkout step', () => {
+      let { handleNextCheckoutStep } = coinifySagas({ coreSagas })
+
+      let payload = { step: 'payment' }
+
+      let saga = testSaga(handleNextCheckoutStep, payload)
+
+      it('should dispatch an action with the step', () => {
+        saga.next().put(coinifyActions.coinifySetCheckoutStep(payload.step))
+      })
+    })
+    describe('checkout step', () => {
+      let { handleNextCheckoutStep } = coinifySagas({ coreSagas })
+
+      let payload = { step: 'checkout' }
+
+      let saga = testSaga(handleNextCheckoutStep, payload)
+
+      it('should reset recurring buy', () => {
+        saga.next().put(coinifyActions.coinifyResetRecurringBuy())
+      })
+      it('should go to the step', () => {
+        saga.next().put(coinifyActions.coinifySetCheckoutStep(payload.step))
+      })
+    })
+    describe('error handling', () => {
+      let { handleNextCheckoutStep } = coinifySagas({ coreSagas })
+      let payload = { step: 'checkout' }
+      let saga = testSaga(handleNextCheckoutStep, payload)
+      const error = new Error('ERROR')
+      it('should log the error', () => {
+        saga
+          .restart()
+          .next()
+          .throw(error)
+          .put(actions.logs.logErrorMessage(logLocation, 'handleNextCheckoutStep', error))
+      })
+    })
+  })
+
+  describe('initializePayment', () => {
+    let { initializePayment } = coinifySagas({ coreSagas, networks })
+
+    let saga = testSaga(initializePayment)
+
+    it('should set loading state', () => {
+      saga.next(paymentMock).put(coinifyActions.coinifySellBtcPaymentUpdatedLoading())
+    })
+
+    it('should create payment', () => {
+      saga.next(paymentMock)
+      expect(coreSagas.payment.btc.create).toHaveBeenCalled()
+      expect(coreSagas.payment.btc.create).toHaveBeenCalledWith({
+        network: networks.btc
+      })
+    })
+
+    it('should call init', () => {
+      saga.next(paymentMock)
+      expect(paymentMock.init).toHaveBeenCalled()
+    })
+
+    it('should call value on the payment', () => {
+      saga.next(paymentMock)
+      expect(paymentMock.value).toHaveBeenCalled()
+    })
+
+    it('should update from', () => {
+      saga.next(paymentMock)
+      expect(paymentMock.from).toHaveBeenCalled()
+    })
+    it('should update the fee', () => {
+      saga.next(paymentMock)
+      expect(paymentMock.fee).toHaveBeenCalled()
+    })
+    it('should call payment value', () => {
+      saga.next(paymentMock)      
+      expect(paymentMock.value).toHaveBeenCalled()
+    })
+    describe('error handling', () => {
+      let { initializePayment } = coinifySagas({ coreSagas, networks })
+      let saga = testSaga(initializePayment)
+      const error = new Error('ERROR')
+      it('should update sell payment with the error and log it', () => {
+        saga
+          .restart()
+          .next()
+          .throw(error)
+          .put(coinifyActions.coinifySellBtcPaymentUpdatedFailure(error))
+          .next()
+          .put(actions.logs.logErrorMessage(logLocation, 'initializePayment', error))
       })
     })
   })

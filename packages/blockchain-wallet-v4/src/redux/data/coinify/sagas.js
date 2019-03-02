@@ -252,13 +252,13 @@ export default ({ api, options }) => {
     }
   }
 
-  const buy = function*(data, addressData) {
+  const buy = function*(data, addressData, subscriptionData) {
     const { quote, medium } = data.payload
     try {
       yield put(A.handleTradeLoading())
       const mediums = yield apply(quote, quote.getPaymentMediums)
       const accounts = yield apply(mediums[medium], mediums[medium].getAccounts)
-      const buyResult = yield apply(accounts[0], accounts[0].buy)
+      const buyResult = yield apply(accounts[0], accounts[0].buy, [subscriptionData])
       yield put(A.handleTradeSuccess(buyResult))
       yield call(settingsSagas.setLastTxTime)
       const coinifyObj = yield call(getCoinify)
@@ -310,7 +310,7 @@ export default ({ api, options }) => {
   const cancelTrade = function*({ trade }) {
     try {
       yield apply(trade, trade.cancel)
-      yield call(fetchTrades)
+      yield put(A.fetchTrades())
       if (prop('tradeSubscriptionId', trade)) {
         yield call(fetchSubscriptions)
       }

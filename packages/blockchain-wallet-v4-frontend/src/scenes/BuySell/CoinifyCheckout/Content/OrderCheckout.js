@@ -4,31 +4,34 @@ import { Wrapper as ExchangeCheckoutWrapper } from '../../ExchangeCheckout'
 import { flex, spacing } from 'services/StyleService'
 import { FormattedMessage } from 'react-intl'
 import { Remote } from 'blockchain-wallet-v4/src'
-import { StepTransition } from 'components/Utilities/Stepper'
 import QuoteInput from './QuoteInput'
 import { MethodContainer } from 'components/BuySell/styled.js'
 import {
   checkoutButtonLimitsHelper,
   getRateFromQuote
 } from 'services/CoinifyService'
+import RecurringBuyCheckout from './Recurring'
 
 const OrderCheckout = ({
-  changeTab,
-  quoteR,
-  account,
-  onFetchQuote,
-  reason,
-  limits,
-  checkoutError,
-  type,
-  defaultCurrency,
-  symbol,
-  checkoutBusy,
   busy,
+  changeTab,
+  checkoutBusy,
+  checkoutError,
+  coinifyNextCheckoutStep,
+  countryCode,
+  defaultCurrency,
+  increaseLimit,
+  limits,
+  onFetchQuote,
+  openRecurringConfirmModal,
+  quoteR,
+  reason,
   setMax,
   setMin,
-  increaseLimit,
-  onOrderCheckoutSubmit
+  showRecurringBuy,
+  showRecurringModal,
+  symbol,
+  type
 }) => {
   const quoteInputSpec = {
     method: type, // buy or sell
@@ -68,38 +71,50 @@ const OrderCheckout = ({
       </Fragment>
     )
 
-  const submitButtonHelper = () =>
-    reason.indexOf('has_remaining') > -1 ? (
-      <StepTransition
-        next
-        Component={Button}
-        onClick={onOrderCheckoutSubmit}
-        style={spacing('mt-45')}
+  const submitButtonHelper = () => {
+    const buttonContent = () =>
+      Remote.Loading.is(quoteR)
+        ? <HeartbeatLoader height='20px' width='20px' color='white' />
+        : <FormattedMessage id='scenes.buysell.coinifycheckout.content.ordercheckout.continue' defaultMessage='Continue' />
+
+    return (
+      <Button
+        onClick={() => showRecurringModal ? openRecurringConfirmModal() : coinifyNextCheckoutStep('payment')}
         nature='primary'
         fullwidth
+        style={spacing('mt-45')}
         disabled={
           checkoutBusy ||
           Remote.Loading.is(quoteR) ||
           checkoutError ||
-          limitsHelper(quoteR, limits)
-        }
+          limitsHelper(quoteR, limits)}
       >
-        {Remote.Loading.is(quoteR) ? (
-          <HeartbeatLoader height='20px' width='20px' color='white' />
-        ) : (
-          <FormattedMessage
-            id='scenes.buysell.coinifycheckout.content.ordercheckout.continue'
-            defaultMessage='Continue'
-          />
-        )}
-      </StepTransition>
-    ) : null
+        {buttonContent()}
+      </Button>
+    )
+  }
 
-  return (
-    <ExchangeCheckoutWrapper>
+  return <ExchangeCheckoutWrapper>
+    <Text style={spacing('ml-10')} size='16px' weight={600}>
+      {wantToHelper()}
+    </Text>
+    <MethodContainer>
+      <Icon name='bitcoin-in-circle-filled' color='bitcoin-orange' size='30px' />
+      <div style={{ ...flex('col'), ...spacing('ml-20') }}>
+        <Text size='14px' weight={300} uppercase>
+          Bitcoin
+        </Text>
+        <Text size='12px' weight={300}>
+          {'@ '}
+          {rateHelper()}
+        </Text>
+      </div>
+    </MethodContainer>
+    {reason.indexOf('has_remaining') > -1 ? <Fragment>
       <Text style={spacing('ml-10')} size='16px' weight={600}>
-        {wantToHelper()}
+        <FormattedMessage id='scenes.buysell.coinifycheckout.content.ordercheckout.amount' defaultMessage='Amount' />
       </Text>
+<<<<<<< HEAD
       <MethodContainer>
         <Icon name='btc-circle' color='btc' size='30px' />
         <div style={{ ...flex('col'), ...spacing('ml-20') }}>
@@ -143,6 +158,23 @@ const OrderCheckout = ({
       {submitButtonHelper()}
     </ExchangeCheckoutWrapper>
   )
+=======
+      <div style={spacing('mt-10')}>
+        <QuoteInput changeTab={changeTab} quoteR={quoteR} initialQuoteId={quoteR
+          .map(quote => quote.id)
+          .getOrElse(
+            null
+          )} debounce={500} spec={quoteInputSpec} onFetchQuote={onFetchQuote} disabled={disableInputs} limits={limits} type={type} defaultCurrency={defaultCurrency} symbol={symbol} setMax={setMax} setMin={setMin} increaseLimit={increaseLimit} />
+      </div>
+    </Fragment> : null}
+    {
+      showRecurringBuy
+        ? <RecurringBuyCheckout />
+        : null
+    }
+    {submitButtonHelper()}
+  </ExchangeCheckoutWrapper>
+>>>>>>> origin/feat/recurring_buy
 }
 
 export default OrderCheckout

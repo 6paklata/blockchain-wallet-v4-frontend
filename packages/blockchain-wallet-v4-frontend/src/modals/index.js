@@ -1,5 +1,6 @@
 import React from 'react'
 
+<<<<<<< HEAD
 import {
   DeleteAddressLabel,
   ShowUsedAddresses,
@@ -35,6 +36,25 @@ import {
   PromptLockbox
 } from './Lockbox'
 import { MobileLogin, MobileNumberChange, MobileNumberVerify } from './Mobile'
+=======
+import AddBitcoinWallet from './AddBtcWallet'
+import AutoDisconnection from './AutoDisconnection'
+import CoinifyDeleteBank from './CoinifyDeleteBank'
+import CoinifyExchangeData from './CoinifyExchangeData'
+import CoinifyTradeDetails from './CoinifyTradeDetails'
+import CoinifyRecurringBuyConfirm from './CoinifyRecurringBuyConfirm'
+import Confirm from './Confirm'
+import ConfirmDisable2FA from './ConfirmDisable2FA'
+import DeleteAddressLabel from './DeleteAddressLabel'
+import EditTxDescription from './EditTxDescription'
+import ExchangeDetails from './ExchangeDetails'
+import ExchangeResults from './ExchangeResults'
+import IdentityVerification from './IdentityVerification'
+import ImportBtcAddress from './ImportBtcAddress'
+import MobileNumberChange from './MobileNumberChange'
+import MobileNumberVerify from './MobileNumberVerify'
+import MobileLogin from './MobileLogin'
+>>>>>>> origin/feat/recurring_buy
 import Onfido from './Onfido'
 import QRCode from './QRCode'
 import {
@@ -69,6 +89,7 @@ const Modals = props => (
     <CoinifyDeleteBank />
     <CoinifyExchangeData />
     <CoinifyTradeDetails />
+    <CoinifyRecurringBuyConfirm />
     <Confirm />
     <ConfirmDisable2FA />
     <DeleteAddressLabel />

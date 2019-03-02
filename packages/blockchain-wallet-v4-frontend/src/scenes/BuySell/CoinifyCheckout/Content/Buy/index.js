@@ -1,5 +1,5 @@
 import React from 'react'
-import { actions } from 'data'
+import { actions, model } from 'data'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import { getData } from './selectors'
@@ -7,6 +7,7 @@ import Success from './template.success'
 import Loading from 'components/BuySell/Loading'
 import Failure from 'components/BuySell/Failure'
 
+const { CHECKOUT_BUY_FORM } = model.coinify
 class CoinifyBuyContainer extends React.Component {
   constructor (props) {
     super(props)
@@ -19,7 +20,7 @@ class CoinifyBuyContainer extends React.Component {
     this.props.coinifyDataActions.fetchTrades()
     this.props.coinifyDataActions.getKyc()
     this.props.coinifyDataActions.fetchSubscriptions()
-    if (this.props.step === 'isx') {
+    if (this.props.step !== 'checkout') {
       this.props.coinifyActions.coinifyNextCheckoutStep('checkout')
     }
   }
@@ -34,19 +35,22 @@ class CoinifyBuyContainer extends React.Component {
 
   render () {
     const {
-      data,
-      modalActions,
+      buyQuoteR,
+      canTrade,
       coinifyActions,
       coinifyDataActions,
-      buyQuoteR,
       currency,
-      paymentMedium,
-      trade,
+      data,
       formActions,
-      canTrade,
+      level,
+      modalActions,
+      paymentMedium,
+      subscription,
+      subscriptionData,
+      trade,
       ...rest
     } = this.props
-    const { step, checkoutBusy, coinifyBusy, subscriptions, trades } = rest
+    const { step, checkoutBusy, coinifyBusy, subscriptions, trades, showRecurringModal, countryCode, showRecurringBuy } = rest
     const { fetchQuote, refreshBuyQuote } = coinifyDataActions
     const { showModal } = modalActions
     const { coinifyNotAsked, openKYC, coinifyNextCheckoutStep } = coinifyActions
@@ -62,33 +66,45 @@ class CoinifyBuyContainer extends React.Component {
     return data.cata({
       Success: value => (
         <Success
-          value={value}
-          showModal={showModal}
+          busy={busy}
           buyQuoteR={buyQuoteR}
+          canTrade={canTrade}
+          checkoutBusy={checkoutBusy}
+          clearTradeError={coinifyNotAsked}
+          coinifyNextCheckoutStep={coinifyNextCheckoutStep}
+          countryCode={countryCode}
+          currency={currency}
+          handleKycAction={openKYC}
+          initiateBuy={this.startBuy}
+          paymentMedium={paymentMedium}
+          refreshQuote={refreshBuyQuote}
+          step={step}
+          subscriptions={subscriptions}
+          showModal={showModal}
+          showRecurringBuy={showRecurringBuy}
+          showRecurringModal={showRecurringModal}
+          subscription={subscription}
+          subscriptionData={subscriptionData}
+          trade={trade}
+          trades={trades}
+          value={value}
           fetchBuyQuote={quote =>
             fetchQuote({ quote, nextAddress: value.nextAddress })
           }
-          refreshQuote={refreshBuyQuote}
-          currency={currency}
-          checkoutBusy={checkoutBusy}
           setMax={amt =>
-            formActions.change('coinifyCheckoutBuy', 'leftVal', amt)
+            formActions.change(CHECKOUT_BUY_FORM, 'leftVal', amt)
           }
           setMin={amt =>
-            formActions.change('coinifyCheckoutBuy', 'leftVal', amt)
+            formActions.change(CHECKOUT_BUY_FORM, 'leftVal', amt)
           }
-          paymentMedium={paymentMedium}
-          initiateBuy={this.startBuy}
-          step={step}
-          busy={busy}
-          clearTradeError={() => coinifyNotAsked()}
-          trade={trade}
-          handleKycAction={kyc => openKYC(kyc)}
-          changeTab={tab => change('buySellTabStatus', 'status', tab)}
-          coinifyNextCheckoutStep={step => coinifyNextCheckoutStep(step)}
-          canTrade={canTrade}
-          subscriptions={subscriptions}
-          trades={trades}
+          changeTab={tab =>
+            change('buySellTabStatus', 'status', tab)
+          }
+          openRecurringConfirmModal={() =>
+            showRecurringModal
+              ? showModal('CoinifyRecurringBuyConfirm')
+              : null
+          }
         />
       ),
       Failure: e => <Failure error={e} />,

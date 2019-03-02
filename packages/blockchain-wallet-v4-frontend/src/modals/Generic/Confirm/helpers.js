@@ -20,11 +20,26 @@ export const selectTitle = title => {
           defaultMessage='Trade In Progress'
         />
       )
+<<<<<<< HEAD:packages/blockchain-wallet-v4-frontend/src/modals/Generic/Confirm/helpers.js
     case C.CONFIRM_DELETE_LOCKBOX_TITLE:
       return (
         <FormattedMessage
           id='modals.confirm.title.lockbox'
           defaultMessage='Unpair Device'
+=======
+    case C.CANCEL_RECURRING_TITLE:
+      return (
+        <FormattedMessage
+          id='modals.confirm.title.cancel_recurring'
+          defaultMessage='Cancel Recurring Order'
+        />
+      )
+    case C.CANCEL_TRADE_TITLE:
+      return (
+        <FormattedMessage
+          id='modals.confirm.title.cancel_trade'
+          defaultMessage='Cancel Trade'
+>>>>>>> origin/feat/recurring_buy:packages/blockchain-wallet-v4-frontend/src/modals/Confirm/helpers.js
         />
       )
     case C.ARCHIVE_VULNERABLE_ADDRESS_TITLE:
@@ -75,11 +90,26 @@ export const selectMessage = (message, values) => {
           </Text>
         </Fragment>
       )
+<<<<<<< HEAD:packages/blockchain-wallet-v4-frontend/src/modals/Generic/Confirm/helpers.js
     case C.CONFIRM_DELETE_LOCKBOX_MESSAGE:
       return (
         <FormattedMessage
           id='modals.confirm.message.lockbox'
           defaultMessage='Are you sure you want to unpair your device? You will lose all balance, transaction, and account data.'
+=======
+    case C.CANCEL_RECURRING_MSG:
+      return (
+        <FormattedMessage
+          id='modals.confirm.message.cancel_recurring'
+          defaultMessage='Are you sure you want to cancel this recurring order? This cannot be turned back on and if you change your mind, you will have to create a new recurring order.'
+        />
+      )
+    case C.CANCEL_TRADE_MSG:
+      return (
+        <FormattedMessage
+          id='modals.confirm.message.cancel_trade'
+          defaultMessage='Are you sure you want to cancel this trade?'
+>>>>>>> origin/feat/recurring_buy:packages/blockchain-wallet-v4-frontend/src/modals/Confirm/helpers.js
         />
       )
     case C.ARCHIVE_VULNERABLE_ADDRESS_MSG:
@@ -128,6 +158,14 @@ export const selectCancel = message => {
           defaultMessage='No, Thanks'
         />
       )
+    case C.CANCEL_TRADE_CANCEL:
+    case C.CANCEL_RECURRING_CANCEL:
+      return (
+        <FormattedMessage
+          id='modals.confirm.cancel.cancel_recurring'
+          defaultMessage='Go Back'
+        />
+      )
     default:
       return (
         <FormattedMessage
@@ -159,6 +197,20 @@ export const selectConfirm = message => {
         <FormattedMessage
           id='modals.confirm.confirm.phone_call'
           defaultMessage='Give Me A Call'
+        />
+      )
+    case C.CANCEL_RECURRING_CONFIRM:
+      return (
+        <FormattedMessage
+          id='modals.confirm.confirm.cancel_recurring'
+          defaultMessage='Cancel Recurring Order'
+        />
+      )
+    case C.CANCEL_TRADE_CONFIRM:
+      return (
+        <FormattedMessage
+          id='modals.confirm.confirm.cancel_trade'
+          defaultMessage='Cancel Trade'
         />
       )
     default:

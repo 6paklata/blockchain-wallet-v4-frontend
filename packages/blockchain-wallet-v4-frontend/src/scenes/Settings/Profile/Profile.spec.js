@@ -15,7 +15,7 @@ import profileReducer from 'data/modules/profile/reducers'
 import identityVerificationReducer from 'data/components/identityVerification/reducers'
 import { eeaCountryCodes } from 'services/IdentityVerificationService'
 import {
-  getInvitations,
+  getInvited,
   getCountryCode
 } from 'blockchain-wallet-v4/src/redux/settings/selectors'
 import identityVerificationSaga from 'data/components/identityVerification/sagaRegister'
@@ -30,10 +30,17 @@ import { Route, Switch } from 'react-router-dom'
 const { dispatchSpy, spyReducer } = getDispatchSpyReducer()
 
 jest.mock('blockchain-wallet-v4/src/redux/settings/selectors')
+<<<<<<< HEAD
 jest.mock('blockchain-wallet-v4/src/redux/wallet/selectors')
 jest.mock('blockchain-wallet-v4/src/redux/kvStore/userCredentials/selectors')
 getInvitations.mockImplementation(() => Remote.of({ kyc: true }))
 getCountryCode.mockImplementation(() => Remote.of(head(eeaCountryCodes)))
+=======
+
+getInvited.mockImplementation(() => Remote.of({ kyc: true }))
+
+getCountryCode.mockImplementation(() => head(eeaCountryCodes))
+>>>>>>> origin/feat/recurring_buy
 
 const BuySellStub = () => <div />
 const ExchangeStub = () => <div />
@@ -76,6 +83,25 @@ describe('Profile Settings', () => {
     )
   })
 
+<<<<<<< HEAD
+=======
+  describe('user flow not supported', () => {
+    it('should render null when not invited', () => {
+      getInvited.mockImplementationOnce(() => Remote.of({ kyc: false }))
+      wrapper.unmount()
+      wrapper.mount()
+      expect(wrapper.find(Profile).children().length).toBe(0)
+    })
+
+    // it('should render null when not country is not supported', () => {
+    //   getCountryCode.mockImplementationOnce(() => '')
+    //   wrapper.unmount()
+    //   wrapper.mount()
+    //   expect(wrapper.find(Profile).children().length).toBe(0)
+    // })
+  })
+
+>>>>>>> origin/feat/recurring_buy
   describe('default state', () => {
     it('should have KYC_STATE: NONE by default', () => {
       expect(wrapper.find(Profile).prop('data')).toEqual(

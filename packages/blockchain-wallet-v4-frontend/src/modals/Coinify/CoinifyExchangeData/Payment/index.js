@@ -39,8 +39,8 @@ class PaymentContainer extends Component {
   }
 
   render () {
-    const { data, coinifyBusy, coinifyActions } = this.props
-    const { openKYC, checkoutCardMax } = coinifyActions
+    const { data, coinifyBusy, coinifyActions, isSubscriptionTrade } = this.props
+    const { openKYC, checkoutCardMax, coinifyNextCheckoutStep } = coinifyActions
 
     const busy = coinifyBusy.cata({
       Success: () => false,
@@ -57,9 +57,11 @@ class PaymentContainer extends Component {
           handlePaymentClick={this.handlePaymentClick}
           medium={this.state.medium}
           quote={this.props.quote}
+          isSubscriptionTrade={isSubscriptionTrade}
           triggerKyc={this.triggerKyc}
           busy={busy}
           openPendingKyc={openKYC}
+          coinifyNextCheckoutStep={coinifyNextCheckoutStep}
           handlePrefillCardMax={limits => checkoutCardMax(limits)}
         />
       ),
@@ -77,7 +79,8 @@ PaymentContainer.propTypes = {
 const mapStateToProps = state => ({
   data: getData(state),
   quote: getQuote(state).getOrElse(null),
-  coinifyBusy: path(['coinify', 'coinifyBusy'], state)
+  coinifyBusy: path(['coinify', 'coinifyBusy'], state),
+  isSubscriptionTrade: path(['coinify', 'subscription'], state)
 })
 
 const mapDispatchToProps = dispatch => ({

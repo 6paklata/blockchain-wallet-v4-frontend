@@ -153,10 +153,47 @@
           "CH"
         ],
         "config": {
+<<<<<<< HEAD
           "partnerId": 19,
           "production": true,
           "iSignThisDomain": "https://verify.isignthis.com"
         }
+=======
+          "production": false,
+          "availability": true,
+          "partnerId": 35,
+          "iSignThisDomain": "https://stage-verify.isignthis.com",
+          "surveyLinks": [
+            "https://blockchain.co1.qualtrics.com/SE/?SID=SV_8pupOEQPGkXx8Kp",
+            "https://blockchain.co1.qualtrics.com/jfe/form/SV_205rqJvYy7mRxnn",
+            "https://blockchain.co1.qualtrics.com/jfe/form/SV_ac9wCotxdlnCzU9",
+            "https://blockchain.co1.qualtrics.com/jfe/form/SV_agg8sRcpEsWbEnb",
+            "https://blockchain.co1.qualtrics.com/SE/?SID=SV_1RF9VhC96M8xXh3"
+          ],
+          "sellSurveyLinks": [
+            "https://blockchain.co1.qualtrics.com/jfe/form/SV_56iZITjrjyMOrzL",
+            "https://blockchain.co1.qualtrics.com/jfe/form/SV_9u8XxkrkiUUy6z3",
+            "https://blockchain.co1.qualtrics.com/jfe/form/SV_9ysiGRC4rkMFwFv"
+          ]
+        },
+        "announcements": {}
+      },
+      "ethereum": {
+        "availability": {
+          "send": true,
+          "request": true,
+          "history": true,
+          "fiat": true
+        },
+        "fraction": 1,
+        "countries": "*",
+        "states": "*",
+        "lastTxFuse": 86400,
+        "config": {
+          "network": "mainnet"
+        },
+        "announcements": {}
+>>>>>>> origin/feat/recurring_buy
       },
       "sfox": {
         "countries": ["US"],

@@ -47,12 +47,20 @@ export const getUserTier = state =>
 export const isCountrySupported = (countryCode, supportedCountries) =>
   any(propEq('code', countryCode), supportedCountries)
 export const invitedToKyc = state =>
+<<<<<<< HEAD
   selectors.core.settings.getInvitations(state).map(prop('kyc'))
 export const countrySupportsKyc = state =>
   converge(lift(isCountrySupported), [
     selectors.core.settings.getCountryCode,
     selectors.components.identityVerification.getSupportedCountries
   ])(state)
+=======
+  selectors.core.settings.getInvited(state).map(prop('kyc'))
+export const countrySupportsKyc = state => Remote.of(true)
+// Remote.of(selectors.core.settings.getCountryCode(state)).map(
+//   isCountrySupported
+// )
+>>>>>>> origin/feat/recurring_buy
 export const userFlowSupported = converge(lift(and), [
   invitedToKyc,
   countrySupportsKyc

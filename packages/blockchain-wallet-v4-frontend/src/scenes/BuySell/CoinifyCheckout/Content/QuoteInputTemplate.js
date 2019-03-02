@@ -5,11 +5,13 @@ import { FormattedMessage } from 'react-intl'
 import { NavLink } from 'react-router-dom'
 import { Field, reduxForm } from 'redux-form'
 import { equals, gt, not, prop } from 'ramda'
-
+import { model } from 'data'
 import { Icon, Link, Text } from 'blockchain-info-components'
 import { SelectBoxCoinifyCurrency, NumberBoxDebounced } from 'components/Form'
 import { getReasonExplanation } from 'services/CoinifyService'
 import media from 'services/ResponsiveService'
+
+const { CHECKOUT_BUY_FORM, CHECKOUT_SELL_FORM } = model.coinify
 
 const Wrapper = styled.div`
   width: 100%;
@@ -292,13 +294,13 @@ const FiatConvertor = props => {
           )}
           {gt(2, prop('name', level)) &&
           not(equals(prop('state', kyc), 'reviewing')) ? (
-            <a onClick={() => increaseLimit()}>
-              <FormattedMessage
-                id='buysell.quote_input.increase_limits'
-                defaultMessage=' Increase your limit.'
-              />
-            </a>
-          ) : null}
+              <a onClick={() => increaseLimit()}>
+                <FormattedMessage
+                  id='buysell.quote_input.increase_limits'
+                  defaultMessage=' Increase your limit.'
+                />
+              </a>
+            ) : null}
         </LimitsHelper>
       )
     }
@@ -325,6 +327,7 @@ const FiatConvertor = props => {
             component={SelectBoxCoinifyCurrency}
             defaultDisplay={defaultCurrency}
             isSell={isSell}
+            disabled={inputsDisabled}
           />
         </Container>
         <ArrowLeft size='16px' name='left-arrow' />
@@ -353,10 +356,10 @@ FiatConvertor.propTypes = {
 }
 
 export const QuoteInputTemplateBuy = reduxForm({
-  form: 'coinifyCheckoutBuy',
+  form: CHECKOUT_BUY_FORM,
   destroyOnUnmount: false
 })(FiatConvertor)
 export const QuoteInputTemplateSell = reduxForm({
-  form: 'coinifyCheckoutSell',
+  form: CHECKOUT_SELL_FORM,
   destroyOnUnmount: false
 })(FiatConvertor)
